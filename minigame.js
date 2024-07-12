@@ -166,7 +166,12 @@ function check() {
         // Play phase completion BGM
         playPhaseCompletionBgm();
 
-        reset();
+        // Show splash screen and play intro BGM
+        setTimeout(() => {
+            document.querySelector('.groups').classList.add('hidden');
+            document.querySelector('.splash').classList.remove('hidden');
+            introBgm.play();
+        }, 1000); // Delay before showing the splash screen and playing the intro BGM
     }
 }
 
@@ -238,7 +243,8 @@ function start() {
     document.querySelector('.max_streak').innerHTML = max_streak;
     document.querySelector('.best_time').innerHTML = best_time;
 
-    timer_start = sleep(4000, function () {
+    // Hide splash screen when intro BGM ends
+    introBgm.addEventListener('ended', () => {
         document.querySelector('.splash').classList.add('hidden');
         document.querySelector('.groups').classList.remove('hidden');
 
