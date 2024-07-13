@@ -171,6 +171,9 @@ function check() {
             document.querySelector('.groups').classList.add('hidden');
             document.querySelector('.splash').classList.remove('hidden');
             introBgm.play();
+            
+            // Reset back to 1st phase
+            resetToFirstPhase();
         }, 1000); // Delay before showing the splash screen and playing the intro BGM
     }
 }
@@ -292,6 +295,14 @@ document.querySelector('.btn_again').addEventListener('click', function () {
 function reset() {
     document.querySelector('.groups').innerHTML = '';
     start(); // Start the game again
+}
+
+function resetToFirstPhase() {
+    current_phase = 0;
+    player_sequence = [];
+    game_started = false;
+    last_highlighted_tile = null;
+    reset();
 }
 
 start();
