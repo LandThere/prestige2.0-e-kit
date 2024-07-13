@@ -6,7 +6,7 @@ let best_time = 99.999;
 
 let mode = 6;
 let mode_data = {};
-mode_data[5] = [8, '104px'];
+mode_data[5] = [5, '104px'];
 mode_data[6] = [10, '86px'];
 mode_data[7] = [11, '73px'];
 mode_data[8] = [12, '63.5px'];
