@@ -1,4 +1,4 @@
-let timer_start, timer_game, timer_finish, timer_time, good_positions, wrong, right, speed, timerStart, positions;
+let timer_start, timer_game, timer_finish, timer_time, good_positions, wrong, right, speed, timerStart, positions, timerFill;
 let game_started = false;
 let streak = 0;
 let max_streak = 0;
@@ -6,7 +6,7 @@ let best_time = 99.999;
 
 let mode = 6;
 let mode_data = {};
-mode_data[5] = [5, '104px'];
+mode_data[5] = [8, '104px'];
 mode_data[6] = [10, '86px'];
 mode_data[7] = [11, '73px'];
 mode_data[8] = [12, '63.5px'];
@@ -44,27 +44,25 @@ const shuffle = (arr) => {
 // Options
 document.querySelector('#speed').addEventListener('input', function (ev) {
     document.querySelector('.speed_value').innerHTML = ev.target.value + 's';
-    speed = ev.target.value;
-    streak = 0;
-    reset();
+    speed = parseFloat(ev.target.value) * 1000; // Convert to milliseconds
+    resetToIntro(); // Reset to intro screen and restart game
 });
 document.querySelector('#grid').addEventListener('input', function (ev) {
     document.querySelector('.grid_value').innerHTML = ev.target.value + 'x' + ev.target.value;
     mode = ev.target.value;
-    streak = 0;
-    reset();
+    resetToIntro(); // Reset to intro screen and restart game
 });
 
 // Resets
 document.querySelector('.btn_again').addEventListener('click', function () {
-    streak = 0;
-    reset();
+    resetToIntro(); // Reset to intro screen
 });
 
 let current_phase = 0;
 let player_sequence = [];
 let showing_sequence = false;
 let last_highlighted_tile = null;
+let timer_phase;
 
 // Define BGM elements
 const introBgm = new Audio('intro_bgm.mp3'); // Replace with your intro BGM file
@@ -81,17 +79,8 @@ function listener(ev) {
     player_sequence.push(position);
 
     if (good_positions[player_sequence.length - 1] !== position) {
-        wrong++;
-        game_started = false; // End the game on incorrect guess
-        check();
-
-        // Play error BGM on wrong guess
-        playErrorBgm();
-
-        // Toggle tiles color (red and green alternately)
-        toggleTilesColor();
+        triggerError(); // Call the error function
     } else {
-        // Highlight the tile temporarily
         highlightTile(ev.target);
 
         if (player_sequence.length === current_phase + 1) {
@@ -99,6 +88,7 @@ function listener(ev) {
             current_phase++;
             player_sequence = [];
             last_highlighted_tile = null;
+            stopTimer(); // Stop all timers immediately on success
             if (current_phase < good_positions.length) {
                 showPhaseSequence();
             } else {
@@ -145,9 +135,22 @@ function playErrorBgm() {
     errorBgm.play();
 }
 
+function triggerError() {
+    wrong++;
+    game_started = false; // End the game on incorrect guess
+    stopTimer(); // Stop all timers
+    check();
+
+    // Play error BGM on wrong guess
+    playErrorBgm();
+
+    // Toggle tiles color (red and green alternately)
+    toggleTilesColor();
+}
+
 function check() {
     if (current_phase === good_positions.length) {
-        stopTimer();
+        stopTimer(); // Stop all timers
         streak++;
         if (streak > max_streak) {
             max_streak = streak;
@@ -173,7 +176,7 @@ function check() {
             introBgm.play();
             
             // Reset back to 1st phase
-            resetToFirstPhase();
+            resetToIntro();
         }, 1000); // Delay before showing the splash screen and playing the intro BGM
     }
 }
@@ -201,6 +204,7 @@ function showPhaseSequence() {
                 game_started = true; // Allow the game to continue for the next guess
                 resetTimer();
                 startTimer();
+                startPhaseTimer(); // Start the phase timer here
             }, 1000); // Delay 1 second after completing the current phase
         }
     }
@@ -250,6 +254,7 @@ function start() {
     introBgm.addEventListener('ended', () => {
         document.querySelector('.splash').classList.add('hidden');
         document.querySelector('.groups').classList.remove('hidden');
+        document.querySelector('.timer-bar-container').classList.remove('hidden');
 
         showPhaseSequence();
     });
@@ -262,6 +267,7 @@ function startTimer() {
     timerStart = new Date();
     timer_time = setInterval(timer, 1);
 }
+
 function timer() {
     let timerNow = new Date();
     let timerDiff = new Date(timerNow - timerStart);
@@ -270,39 +276,94 @@ function timer() {
     ms = ms < 10 ? "00" + ms : ms < 100 ? "0" + ms : ms;
     document.querySelector('.streaks .time').innerHTML = sec + "." + ms;
 }
+
 function stopTimer() {
-    clearInterval(timer_time);
+    clearInterval(timer_time); // Stop the main timer
+    clearTimeout(timer_phase); // Stop the phase timer
+    phaseTimerActive = false; // Deactivate phase timer
 }
+
 function resetTimer() {
-    clearInterval(timer_time);
-    document.querySelector('.streaks .time').innerHTML = '0.000';
+    clearInterval(timer_time); // Clear the main timer interval
+    clearTimeout(timer_phase); // Clear the phase timer
+    document.querySelector('.streaks .time').innerHTML = '0.000'; // Reset the time display
+}
+
+function initializeTimerBar() {
+    timerFill = document.querySelector('.timer-fill');
+}
+
+let phaseTimerActive = false; // Track if phase timer is active
+
+function updateTimerBar(phaseDuration) {
+    if (!timerFill) return; // Ensure timerFill exists
+
+    const startTime = performance.now(); // Use performance.now() for better timing accuracy
+    const endTime = startTime + phaseDuration; // Calculate end time based on phase duration
+
+    phaseTimerActive = true; // Set phase timer as active
+
+    function update() {
+        if (!phaseTimerActive) return; // Stop updating if phase timer is inactive
+        
+        const now = performance.now(); // Get current time
+        const remainingTime = endTime - now; // Calculate remaining time
+
+        // Calculate the percentage width based on remaining time
+        const percentage = Math.max((remainingTime / phaseDuration) * 100, 0);
+        timerFill.style.width = `${percentage}%`;
+
+        // Continue updating until the end time is reached
+        if (remainingTime > 0) {
+            requestAnimationFrame(update);
+        } else {
+            timerFill.style.width = '0%'; // Ensure it ends at 0%
+            phaseTimerActive = false; // Deactivate phase timer
+        }
+    }
+
+    // Start the update loop
+    update();
+}
+
+// Phase timer
+function startPhaseTimer() {
+    clearTimeout(timer_phase); // Ensure no overlapping phase timers
+    // Calculate phase duration based on speed
+    let phaseDuration = 3000 + (current_phase * 2000); // Duration for the phase
+    updateTimerBar(phaseDuration); // Start updating the timer bar
+
+    timer_phase = setTimeout(() => {
+        if (game_started) {
+            triggerError(); // Trigger an error if the phase times out
+        }
+    }, phaseDuration); // The time limit for each phase
 }
 
 // Resets
-document.querySelector('.btn_again').addEventListener('click', function () {
-    // Reset game variables
-    streak = 0;
-    reset();
-
-    // Show splash screen
-    document.querySelector('.groups').classList.add('hidden');
-    document.querySelector('.splash').classList.remove('hidden');
-
-    // Play intro BGM when splash screen is shown again
-    introBgm.play();
-});
-
 function reset() {
-    document.querySelector('.groups').innerHTML = '';
-    start(); // Start the game again
+    stopTimer(); // Ensure all timers are stopped
+    resetTimer(); // Ensure all timers are reset
+    document.querySelector('.groups').innerHTML = ''; // Clear previous groups
+    document.querySelector('.splash').classList.remove('hidden'); // Show the splash screen
+    document.querySelector('.groups').classList.add('hidden'); // Hide the game groups
+    document.querySelector('.timer-bar-container').classList.add('hidden'); // Hide the timer bar container
 }
 
-function resetToFirstPhase() {
-    current_phase = 0;
-    player_sequence = [];
-    game_started = false;
-    last_highlighted_tile = null;
-    reset();
+function resetToIntro() {
+    // Perform general reset
+    reset(); 
+
+    // Ensure intro BGM is played again
+    introBgm.currentTime = 0; // Restart BGM if already playing
+    introBgm.play();
+
+    // Reinitialize the timer bar
+    initializeTimerBar();
+    
+    // Start the game again
+    start();
 }
 
+initializeTimerBar();
 start();
