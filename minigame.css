@@ -124,6 +124,9 @@ body{
 .good{
     background-color: #00c000;
 }
+.click{
+    background-color: #004900;
+}
 .bad{
     background-color: #F00F18;
 }

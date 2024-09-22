@@ -102,9 +102,9 @@ function listener(ev) {
 }
 
 function highlightTile(tile) {
-    tile.classList.add('good');
+    tile.classList.add('click');
     setTimeout(() => {
-        tile.classList.remove('good');
+        tile.classList.remove('click');
     }, 200); // Highlight for 0.2 seconds
 }
 
@@ -229,8 +229,16 @@ function start() {
     last_highlighted_tile = null;
 
     positions = range(0, Math.pow(mode, 2) - 1);
-    shuffle(positions);
-    good_positions = positions.slice(0, mode_data[mode][0]);
+
+    good_positions = []; // Initialize good_positions
+
+    let total_phases = mode_data[mode][0]; // Get the total number of phases
+
+    // Instead of slicing, allow tiles to repeat across phases
+    for (let i = 0; i < total_phases; i++) {
+        let random_tile = positions[Math.floor(Math.random() * positions.length)];
+        good_positions.push(random_tile); // Push a random tile for each phase
+    }
 
     let div = document.createElement('div');
     div.classList.add('group');
@@ -238,6 +246,7 @@ function start() {
     div.style.height = mode_data[mode][1];
     const groups = document.querySelector('.groups');
     groups.innerHTML = ''; // Clear previous groups
+
     for (let i = 0; i < positions.length; i++) {
         let group = div.cloneNode();
         group.dataset.position = i.toString();
@@ -262,6 +271,7 @@ function start() {
     // Play intro BGM when splash screen is shown
     introBgm.play();
 }
+
 
 function startTimer() {
     timerStart = new Date();
